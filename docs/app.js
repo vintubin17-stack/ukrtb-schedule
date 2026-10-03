@@ -89,6 +89,14 @@
             cls: 'bg-rose-100 text-rose-800 ring-rose-200',
             dot: 'bg-rose-500',
         },
+        pending: {
+            // День за пределами собранного снимка — это не сбой,
+            // поэтому и вид нейтральный, а не предупреждающий.
+            text: 'Ещё не собрано',
+            cls: 'bg-slate-100 text-slate-700 ring-slate-200',
+            dot: 'bg-slate-400',
+            textCls: 'text-slate-500',
+        },
     };
 
     // --- Утилиты ------------------------------------------------------
@@ -395,7 +403,8 @@
         if (day.source && day.source !== 'live') {
             var meta = SOURCE_META[day.source];
             if (meta) {
-                daySource = '<span class="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">' +
+                daySource = '<span class="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium ' +
+                    (meta.textCls || 'text-amber-700') + '">' +
                     '<span class="h-1.5 w-1.5 rounded-full ' + meta.dot + '"></span>' + escapeHtml(meta.text) + '</span>';
             }
         }
@@ -403,6 +412,15 @@
         var content;
         if (day.has_lessons) {
             content = '<ul class="divide-y divide-slate-100">' + day.lessons.map(renderLesson).join('') + '</ul>';
+        } else if (day.source === 'pending' || day.notCollected) {
+            content =
+                '<div class="empty-day px-5 py-12 text-center">' +
+                    '<svg class="mx-auto h-9 w-9 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">' +
+                    '<circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/>' +
+                    '</svg>' +
+                    '<p class="mt-3 text-sm font-medium text-slate-600">Данных пока нет</p>' +
+                    '<p class="mt-1 text-xs text-slate-400">День появится в следующем обновлении</p>' +
+                '</div>';
         } else if (day.source === 'error' || day.unavailable) {
             content =
                 '<div class="empty-day px-5 py-12 text-center">' +
@@ -647,21 +665,30 @@
     }
 
     // Заглушка для даты, которой нет в собранном файле.
+    // Это не ошибка: день просто ещё не попал в снимок.
+    var LOCAL_WEEKDAYS = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда',
+                          'Четверг', 'Пятница', 'Суббота'];
+    var LOCAL_WEEKDAYS_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
     function unknownDay(iso) {
+        var parsed = new Date(iso + 'T00:00:00');
+        var index = isNaN(parsed.getTime()) ? -1 : parsed.getDay();
+
         return {
             date: iso,
             date_label: humanDate(iso),
-            weekday: '',
-            weekday_short: '',
+            // День недели считаем сами: сервер для этой даты данных не дал.
+            weekday: index >= 0 ? LOCAL_WEEKDAYS[index] : '',
+            weekday_short: index >= 0 ? LOCAL_WEEKDAYS_SHORT[index] : '',
             is_today: iso === todayIso(),
             is_tomorrow: iso === isoShift(todayIso(), 1),
             is_past: iso < todayIso(),
-            is_weekend: false,
+            is_weekend: index === 0 || index === 6,
             has_lessons: false,
             lessons_count: 0,
-            source: 'error',
-            unavailable: true,
-            note: 'Этой даты нет в собранном файле.',
+            source: 'pending',
+            notCollected: true,
+            note: '',
             lessons: [],
         };
     }
@@ -680,18 +707,25 @@
             }
 
             var warnings = (all.warnings || []).slice();
-            var outside = days.filter(function (d) { return d.unavailable; });
-            if (outside.length) {
+
+            // Перечисляем конкретные даты: «часть дат» непонятно, а «14.10.2026» —
+            // сразу видно, что дело не в выбранном дне.
+            var pending = days.filter(function (d) { return d.source === 'pending'; });
+            if (pending.length) {
                 warnings.push(
-                    'Часть дат (' + outside.length + ') не входит в собранный диапазон ' +
-                    '(' + (all.range_label || '') + '). Пересоберите страницу: refresh.ps1.'
+                    'За пределами собранного диапазона (' + (all.range_label || '') + '): ' +
+                    pending.map(function (d) { return d.date_label; }).join(', ') +
+                    '. Эти дни появятся после следующего обновления данных.'
                 );
             }
 
             var sources = days.map(function (d) { return d.source; });
             var overall = all.source;
-            if (sources.indexOf('error') >= 0 && sources.indexOf('live') >= 0) overall = 'mixed';
-            if (sources.every(function (s) { return s === 'error'; })) overall = 'error';
+            if (sources.indexOf('error') >= 0) {
+                overall = sources.some(function (s) { return s !== 'error'; }) ? 'mixed' : 'error';
+            } else if (sources.indexOf('pending') >= 0) {
+                overall = 'pending';
+            }
 
             return {
                 ok: true,
