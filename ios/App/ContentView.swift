@@ -20,6 +20,10 @@ struct ContentView: View {
                     isLoading: $isLoading,
                     errorMessage: $errorMessage)
                 .ignoresSafeArea(edges: .bottom)
+                .onAppear {
+                    // Расставляем напоминания о парах при каждом открытии.
+                    LessonNotifications.shared.refresh()
+                }
 
             if isLoading && errorMessage == nil {
                 ProgressView()
