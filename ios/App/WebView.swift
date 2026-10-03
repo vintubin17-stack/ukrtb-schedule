@@ -56,6 +56,30 @@ struct WebView: UIViewRepresentable {
             webView?.reload()
         }
 
+        /// Внутренние переходы — в приложении, внешние ссылки — в Safari.
+        /// Так ссылка «Подключиться» на пару открывает Zoom/Max в браузере,
+        /// а не запирает пользователя внутри обёртки.
+        func webView(_ webView: WKWebView,
+                     decidePolicyFor navigationAction: WKNavigationAction,
+                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            guard navigationAction.navigationType == .linkActivated,
+                  let url = navigationAction.request.url,
+                  let host = url.host else {
+                decisionHandler(.allow)
+                return
+            }
+
+            if Self.internalHosts.contains(where: { host.hasSuffix($0) }) {
+                decisionHandler(.allow)
+                return
+            }
+
+            UIApplication.shared.open(url)
+            decisionHandler(.cancel)
+        }
+
+        private static let internalHosts = ["vintubin17-stack.github.io"]
+
         func webView(_ webView: WKWebView,
                      didStartProvisionalNavigation navigation: WKNavigation!) {
             parent.isLoading = true

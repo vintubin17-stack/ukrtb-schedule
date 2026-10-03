@@ -1,0 +1,108 @@
+name: iOS → неподписанный IPA (для SideStore / LiveContainer)
+
+# Собирает .ipa БЕЗ подписи на бесплатном macOS-раннере GitHub.
+#
+# Такой файл ставится на iPhone бесплатно: SideStore, AltStore или
+# LiveContainer подписывают его прямо на телефоне вашим обычным Apple ID.
+# Платный аккаунт разработчика для этого не нужен.
+#
+# Готовый файл появляется в Releases с тегом `ios-latest`.
+# Порядок установки — в ios/README.md, раздел «Бесплатная установка».
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-unsigned-ipa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  ipa:
+    name: Сборка неподписанного IPA
+    runs-on: macos-15
+    timeout-minutes: 40
+
+    env:
+      ARCHIVE_PATH: ${{ github.workspace }}/build/Schedule.xcarchive
+      IPA_DIR: ${{ github.workspace }}/build/ipa
+
+    steps:
+      - name: Забрать код
+        uses: actions/checkout@v4
+
+      - name: Показать версию Xcode
+        run: xcodebuild -version
+
+      - name: Установить XcodeGen
+        run: brew install xcodegen
+
+      - name: Сгенерировать Xcode-проект
+        run: cd ios && xcodegen generate
+
+      - name: Собрать архив без подписи
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/Schedule.xcodeproj \
+            -scheme Schedule \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            archive
+
+      - name: Упаковать в .ipa
+        run: |
+          set -euo pipefail
+          APP_PATH="$ARCHIVE_PATH/Products/Applications/Schedule.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Не найден $APP_PATH — посмотрите журнал шага сборки."
+            find "$ARCHIVE_PATH/Products" -maxdepth 3 || true
+            exit 1
+          fi
+          mkdir -p "$IPA_DIR/Payload"
+          cp -R "$APP_PATH" "$IPA_DIR/Payload/"
+          cd "$IPA_DIR"
+          zip -qr Schedule.ipa Payload
+          ls -lh Schedule.ipa
+          echo "Размер: $(du -h Schedule.ipa | cut -f1)"
+
+      - name: Проверить, что внутри правильное приложение
+        run: |
+          set -euo pipefail
+          cd "$IPA_DIR"
+          unzip -l Schedule.ipa | head -20
+          PLIST="$IPA_DIR/Payload/Schedule.app/Info.plist"
+          echo "Bundle ID: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")"
+          echo "Версия:    $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")"
+          echo "Сборка:    $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")"
+
+      - name: Сохранить IPA как артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: Schedule-ipa
+          path: ${{ env.IPA_DIR }}/Schedule.ipa
+          retention-days: 90
+
+      - name: Обновить релиз ios-latest
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-latest
+          name: iOS-приложение (без подписи)
+          body: |
+            Неподписанное приложение «Расписание КСК-40» для установки через
+            SideStore, AltStore или LiveContainer.
+
+            Как установить — в файле `ios/README.md`, раздел «Бесплатная установка».
+
+            Собрано из коммита ${{ github.sha }}.
+          files: ${{ env.IPA_DIR }}/Schedule.ipa
+          prerelease: true
+          make_latest: false
