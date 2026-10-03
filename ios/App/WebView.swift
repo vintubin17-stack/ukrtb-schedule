@@ -21,12 +21,43 @@ struct WebView: UIViewRepresentable {
         // окна, чтобы строка состояния читалась на тёмном фоне.
         configuration.userContentController.add(context.coordinator, name: "theme")
 
+        // Запрет масштабирования. В обычном Safari этот метатег игнорируется
+        // ради доступности, но WKWebView его уважает — поэтому внутри
+        // приложения «щипок» и двойной тап страницу больше не приближают.
+        // Скрипт на случай, если страница откроется из старого кэша.
+        let noZoom = WKUserScript(
+            source: """
+            (function () {
+                var meta = document.querySelector('meta[name="viewport"]');
+                if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.setAttribute('name', 'viewport');
+                    document.head.appendChild(meta);
+                }
+                meta.setAttribute('content',
+                    'width=device-width, initial-scale=1, maximum-scale=1, ' +
+                    'user-scalable=no, viewport-fit=cover');
+                document.documentElement.classList.add('no-zoom');
+            })();
+            """,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        configuration.userContentController.addUserScript(noZoom)
+
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .always
         webView.isOpaque = false
         webView.backgroundColor = .clear
+
+        // Сам масштаб прокрутки: даже если страница попросит иначе,
+        // приблизить её жестом не получится.
+        webView.scrollView.minimumZoomScale = 1
+        webView.scrollView.maximumZoomScale = 1
+        webView.scrollView.bouncesZoom = false
+        webView.scrollView.pinchGestureRecognizer?.isEnabled = false
 
         let refreshControl = UIRefreshControl()
         refreshControl.tintColor = .secondaryLabel

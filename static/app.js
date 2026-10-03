@@ -862,6 +862,21 @@
         }
     }
 
+    /// Отключаем масштабирование внутри приложения и в ярлыке на домашнем
+    /// экране: там случайный двойной тап при быстром нажатии приближает
+    /// страницу и мешает. В обычном браузере зум не трогаем — он нужен
+    /// для доступности. В самом приложении то же самое делает WKWebView.
+    function applyNoZoom() {
+        var inApp = !!(window.webkit && window.webkit.messageHandlers &&
+                       window.webkit.messageHandlers.theme);
+        var installed = window.navigator.standalone === true ||
+            (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+
+        if (inApp || installed) {
+            document.documentElement.classList.add('no-zoom');
+        }
+    }
+
     // Статическая версия: одна группа, данные из предсобранного файла.
     function setupStaticMode() {
         if (el.groupInput) {
@@ -909,6 +924,7 @@
 
     function init() {
         checkTailwind();
+        applyNoZoom();
         readUrlState();
 
         if (IS_STATIC) {
