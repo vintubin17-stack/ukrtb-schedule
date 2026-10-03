@@ -24,10 +24,28 @@
     <!-- Tailwind CSS через CDN. Если CDN недоступен, app.js включит резервные стили. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        if (window.tailwind) {
+        // Палитра Tailwind подменяется CSS-переменными из theme.css.
+        // Это позволяет переключать тему, не переписывая ни одного класса
+        // разметки: меняются только значения переменных.
+        (function () {
+            if (!window.tailwind) return;
+
+            var shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+            var hues = ['slate', 'sky', 'rose', 'amber', 'emerald', 'violet', 'indigo', 'blue'];
+            var colors = { card: 'rgb(var(--c-card) / <alpha-value>)' };
+
+            hues.forEach(function (hue) {
+                colors[hue] = {};
+                shades.forEach(function (shade) {
+                    colors[hue][shade] = 'rgb(var(--c-' + hue + '-' + shade + ') / <alpha-value>)';
+                });
+            });
+
             window.tailwind.config = {
+                darkMode: 'class',
                 theme: {
                     extend: {
+                        colors: colors,
                         fontFamily: {
                             sans: ['Inter', 'Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
                         },
@@ -43,8 +61,20 @@
                     },
                 },
             };
-        }
+        })();
+
+        // Тема ставится до первой отрисовки, иначе страница мигнёт светлым.
+        // Авто: тёмная с 20:00 до 07:00.
+        (function () {
+            try {
+                var mode = window.localStorage.getItem('ukrtb-theme') || 'auto';
+                var hour = new Date().getHours();
+                var dark = mode === 'dark' || (mode === 'auto' && (hour >= 20 || hour < 7));
+                if (dark) document.documentElement.classList.add('dark');
+            } catch (e) { /* приватный режим */ }
+        })();
     </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
@@ -59,7 +89,7 @@
     <!-- Шапка -->
     <header class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
                 Учебный портал УКРТБ
             </p>
             <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -67,7 +97,7 @@
             </h1>
             <p class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
                 <span class="inline-flex items-center gap-1.5 font-semibold text-slate-800">
-                    <svg class="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <svg class="h-4 w-4 text-sky-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87m6-1.13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/>
                     </svg>
                     Группа <span id="group-title">{{ default_group }}</span>
@@ -87,7 +117,7 @@
                 <input id="group-input" list="group-list" autocomplete="off" spellcheck="false"
                        value="{{ default_group }}"
                        placeholder="Например, КСК-40"
-                       class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30">
+                       class="w-full rounded-xl border border-slate-300 bg-card py-2.5 pl-9 pr-3 text-sm shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30">
                 <datalist id="group-list"></datalist>
             </div>
 
@@ -99,16 +129,25 @@
                 </svg>
                 <span id="refresh-label">Обновить расписание</span>
             </button>
+
+            <!-- Переключатель темы: авто → светлая → тёмная.
+                 Иконка поворачивается на пол-оборота при каждом нажатии. -->
+            <button id="theme-btn" type="button"
+                    aria-label="Переключить тему"
+                    class="inline-flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-card text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+                <span id="theme-icon"
+                      class="flex h-5 w-5 items-center justify-center transition-transform duration-500 ease-out"></span>
+            </button>
         </div>
     </header>
 
     <!-- Панель выбора даты -->
-    <section id="date-panel" class="mt-5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm" aria-label="Выбор даты">
+    <section id="date-panel" class="mt-5 rounded-2xl border border-slate-200 bg-card p-3 shadow-sm" aria-label="Выбор даты">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 
             <div class="flex items-center gap-2">
                 <button id="prev-day" type="button" title="Предыдущий день" aria-label="Предыдущий день"
-                        class="nav-btn inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+                        class="nav-btn inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-card text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M15 18l-6-6 6-6"/>
                     </svg>
@@ -116,10 +155,10 @@
 
                 <label class="sr-only" for="date-input">Дата начала</label>
                 <input id="date-input" type="date"
-                       class="date-input w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 sm:w-44">
+                       class="date-input w-full rounded-xl border border-slate-300 bg-card px-3 py-2 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 sm:w-44">
 
                 <button id="next-day" type="button" title="Следующий день" aria-label="Следующий день"
-                        class="nav-btn inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+                        class="nav-btn inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-card text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M9 6l6 6-6 6"/>
                     </svg>
@@ -165,7 +204,7 @@
                 <p class="mt-1 leading-relaxed" id="error-text"></p>
                 <div id="error-suggestions" class="mt-2.5 flex flex-wrap gap-1.5" hidden></div>
                 <button id="error-retry" type="button"
-                        class="mt-3 rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">
+                        class="mt-3 rounded-lg border border-rose-300 bg-card px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">
                     Повторить запрос
                 </button>
             </div>

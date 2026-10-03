@@ -130,10 +130,11 @@ def build(group: str, back: int, ahead: int, out_dir: Path,
         newline="\n",  # без CRLF: файл уезжает в Linux-ориентированный репозиторий
     )
 
-    # 2. Статика интерфейса (тот же app.js и styles.css, что и у Flask-версии)
-    #    плюс всё для ярлыка на домашнем экране: манифест, иконки, service worker
-    #    и страница с инструкцией по установке.
-    for name in ("app.js", "styles.css", "sw.js", "manifest.webmanifest", "install.html"):
+    # 2. Статика интерфейса (те же app.js и styles.css, что и у Flask-версии)
+    #    плюс всё для ярлыка на домашнем экране: палитра тем, манифест,
+    #    иконки, service worker и страница с инструкцией по установке.
+    for name in ("theme.css", "app.js", "styles.css", "sw.js",
+                 "manifest.webmanifest", "install.html"):
         shutil.copyfile(PROJECT_ROOT / "static" / name, out_dir / name)
 
     icons_src = PROJECT_ROOT / "static" / "icons"

@@ -11,6 +11,50 @@
 
 html {
     -webkit-text-size-adjust: 100%;
+    /* Фон на самом <html>: иначе при тёмной теме по краям мелькает белое. */
+    background-color: rgb(var(--c-slate-100, 241 245 249));
+    transition: background-color .3s ease;
+}
+
+/* Плавная смена темы: цвета перетекают, а не щёлкают.
+   Трансформации не трогаем — на них завязаны анимации интерфейса. */
+body,
+article,
+header,
+footer,
+section,
+aside,
+div,
+span,
+p,
+h1,
+h2,
+li,
+input,
+button,
+a {
+    transition: background-color .25s ease, border-color .25s ease, color .25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html,
+    body,
+    article,
+    header,
+    footer,
+    section,
+    aside,
+    div,
+    span,
+    p,
+    h1,
+    h2,
+    li,
+    input,
+    button,
+    a {
+        transition: none;
+    }
 }
 
 body {
@@ -29,7 +73,7 @@ body {
 .skeleton {
     position: relative;
     overflow: hidden;
-    background-color: #e9eef5;
+    background-color: rgb(var(--c-slate-200, 226 232 240));
     border-radius: 0.5rem;
 }
 
@@ -427,3 +471,53 @@ body.no-tailwind #range-hint {
 body.no-tailwind #days {
     margin-top: 1.25rem;
 }
+
+/* --- Резервное оформление в тёмной теме ---------------------------------
+   Работает, только если Tailwind с CDN не загрузился: значения берутся
+   из тех же переменных, что и в основной теме (theme.css). */
+
+html.dark body.no-tailwind {
+    background: rgb(var(--c-slate-100));
+    color: rgb(var(--c-slate-900));
+}
+
+html.dark body.no-tailwind h1,
+html.dark body.no-tailwind h2,
+html.dark body.no-tailwind .day-card h2 {
+    color: rgb(var(--c-slate-900));
+}
+
+html.dark body.no-tailwind .day-card,
+html.dark body.no-tailwind section[aria-label="Выбор даты"],
+html.dark body.no-tailwind #gate,
+html.dark body.no-tailwind #notice,
+html.dark body.no-tailwind #error-box {
+    background: rgb(var(--c-card));
+    border-color: rgb(var(--c-slate-200));
+}
+
+html.dark body.no-tailwind .lesson,
+html.dark body.no-tailwind .day-card > header,
+html.dark body.no-tailwind footer {
+    border-color: rgb(var(--c-slate-200));
+}
+
+html.dark body.no-tailwind .pair-number {
+    background: rgb(var(--c-sky-100));
+    color: rgb(var(--c-sky-800));
+}
+
+html.dark body.no-tailwind #group-input,
+html.dark body.no-tailwind .date-input,
+html.dark body.no-tailwind .nav-btn,
+html.dark body.no-tailwind .quick-chip,
+html.dark body.no-tailwind .days-btn {
+    background: rgb(var(--c-slate-50));
+    border-color: rgb(var(--c-slate-300));
+    color: rgb(var(--c-slate-700));
+}
+
+html.dark body.no-tailwind #error-box {
+    border-color: rgb(var(--c-rose-300));
+}
+

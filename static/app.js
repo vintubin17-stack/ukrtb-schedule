@@ -47,6 +47,8 @@
         quickChips: document.getElementById('quick-chips'),
         daysSwitch: document.getElementById('days-switch'),
         rangeHint: document.getElementById('range-hint'),
+        themeBtn: document.getElementById('theme-btn'),
+        themeIcon: document.getElementById('theme-icon'),
     };
 
     var state = {
@@ -57,6 +59,8 @@
         loadedOnce: false,
         groupsLoaded: false,
         publishedRange: null,
+        themeMode: 'auto',        // auto | light | dark
+        themeTurns: 0,            // сколько раз повернулась иконка темы
     };
 
     var SOURCE_META = {
@@ -147,7 +151,7 @@
     var CHIP_OFF = CHIP_BASE + 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100';
 
     var DAYS_BASE = 'days-btn rounded-lg px-3 py-1.5 text-xs font-semibold transition ';
-    var DAYS_ON = DAYS_BASE + 'bg-white text-sky-700 shadow-sm';
+    var DAYS_ON = DAYS_BASE + 'bg-card text-sky-700 shadow-sm';
     var DAYS_OFF = DAYS_BASE + 'text-slate-600 hover:text-slate-900';
 
     var GRID_BY_DAYS = {
@@ -173,6 +177,127 @@
         node.hidden = false;
     }
 
+    // --- Тема: авто, светлая, тёмная -----------------------------------
+    //
+    // Палитра интерфейса собрана на CSS-переменных (theme.css), поэтому
+    // переключение темы — это один класс на <html>, а не перерисовка.
+    //
+    // Режим «авто» не спрашивает систему, а смотрит на часы: вечером
+    // и рано утром расписание удобнее читать в тёмной теме. Это
+    // предсказуемее системной настройки: поведение одинаково на всех
+    // устройствах и объясняется одной фразой.
+
+    var THEME_KEY = 'ukrtb-theme';
+    var THEME_MODES = ['auto', 'light', 'dark'];
+    var THEME_TITLES = {
+        auto: 'Тема: авто — тёмная с 20:00 до 7:00',
+        light: 'Тема: светлая',
+        dark: 'Тема: тёмная',
+    };
+
+    var THEME_ICONS = {
+        light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+               'stroke-linecap="round" class="h-5 w-5"><circle cx="12" cy="12" r="4"/>' +
+               '<path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2' +
+               'M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+        dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+              'stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">' +
+              '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>',
+        auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+              'class="h-5 w-5"><circle cx="12" cy="12" r="9"/>' +
+              '<path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" stroke="none"/></svg>',
+    };
+
+    function readThemeMode() {
+        try {
+            var saved = window.localStorage.getItem(THEME_KEY);
+            return THEME_MODES.indexOf(saved) >= 0 ? saved : 'auto';
+        } catch (e) {
+            return 'auto';
+        }
+    }
+
+    function autoThemeIsDark() {
+        var hour = new Date().getHours();
+        return hour >= 20 || hour < 7;
+    }
+
+    function effectiveTheme(mode) {
+        if (mode === 'light') return 'light';
+        if (mode === 'dark') return 'dark';
+        return autoThemeIsDark() ? 'dark' : 'light';
+    }
+
+    function applyTheme(mode, options) {
+        options = options || {};
+        var effective = effectiveTheme(mode);
+        state.themeMode = mode;
+
+        document.documentElement.classList.toggle('dark', effective === 'dark');
+        try { window.localStorage.setItem(THEME_KEY, mode); } catch (e) { /* приватный режим */ }
+
+        if (el.themeIcon) {
+            el.themeIcon.innerHTML = THEME_ICONS[mode] || THEME_ICONS.auto;
+            if (!options.skipRotation) {
+                // Пол-оборота за каждое нажатие — заметно, но не мешает.
+                state.themeTurns += 1;
+                el.themeIcon.style.transform = 'rotate(' + (state.themeTurns * 180) + 'deg)';
+            }
+        }
+        if (el.themeBtn) {
+            el.themeBtn.title = THEME_TITLES[mode] + ' — нажмите, чтобы сменить';
+        }
+
+        // Цвет адресной строки браузера под тему.
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            meta.setAttribute('content', effective === 'dark' ? '#0f172a' : '#0284c7');
+        }
+
+        // Если страница открыта внутри iOS-приложения, скажем ему тему:
+        // тогда строка состояния подстроит цвет текста.
+        try {
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.theme) {
+                window.webkit.messageHandlers.theme.postMessage(effective);
+            }
+        } catch (e) { /* открыто в браузере — это нормально */ }
+
+        if (!options.silent) {
+            showThemeHint(mode, effective);
+        }
+    }
+
+    function cycleTheme() {
+        var index = THEME_MODES.indexOf(state.themeMode);
+        applyTheme(THEME_MODES[(index + 1) % THEME_MODES.length]);
+    }
+
+    /// Короткая всплывающая подсказка о выбранной теме.
+    function showThemeHint(mode, effective) {
+        var text = mode === 'auto'
+            ? 'Авто · сейчас ' + (effective === 'dark' ? 'тёмная' : 'светлая')
+            : (effective === 'dark' ? 'Тёмная тема' : 'Светлая тема');
+
+        var hint = document.getElementById('theme-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = 'theme-hint';
+            hint.className = 'pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4';
+            hint.innerHTML = '<span class="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold ' +
+                             'text-white shadow-lg transition-opacity duration-300"></span>';
+            document.body.appendChild(hint);
+        }
+
+        var label = hint.firstChild;
+        label.textContent = text;
+        label.style.opacity = '1';
+
+        window.clearTimeout(hint.dataset.timer);
+        hint.dataset.timer = window.setTimeout(function () {
+            label.style.opacity = '0';
+        }, 1600);
+    }
+
     // --- Рендер -------------------------------------------------------
 
     function renderSkeleton() {
@@ -180,7 +305,7 @@
         var card = '';
         for (var i = 0; i < Math.min(state.days, 3); i++) {
             card +=
-                '<article class="day-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">' +
+                '<article class="day-card overflow-hidden rounded-2xl border border-slate-200 bg-card shadow-sm">' +
                     '<div class="border-b border-slate-100 px-5 py-4">' +
                         '<div class="skeleton h-3 w-24"></div>' +
                         '<div class="skeleton mt-2.5 h-5 w-32"></div>' +
@@ -301,7 +426,7 @@
         }
 
         return (
-            '<article class="day-card flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ' +
+            '<article class="day-card flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-card shadow-sm ' +
                 (day.is_today ? 'ring-2 ring-sky-500/60' : '') + '">' +
                 '<header class="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">' +
                     '<div class="min-w-0">' +
@@ -445,7 +570,7 @@
 
     function renderMessage(icon, title, text) {
         el.days.innerHTML =
-            '<div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">' +
+            '<div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-card px-6 py-14 text-center">' +
                 '<p class="text-3xl">' + icon + '</p>' +
                 '<p class="mt-3 text-sm font-semibold text-slate-700">' + escapeHtml(title) + '</p>' +
                 '<p class="mt-1 text-xs text-slate-500">' + escapeHtml(text) + '</p>' +
@@ -491,7 +616,7 @@
         if (suggestions.length) {
             el.errorSuggestions.innerHTML = suggestions.map(function (name) {
                 return '<button type="button" data-group="' + escapeHtml(name) + '" ' +
-                    'class="rounded-full border border-rose-300 bg-white px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">' +
+                    'class="rounded-full border border-rose-300 bg-card px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">' +
                     escapeHtml(name) + '</button>';
             }).join('');
             el.errorSuggestions.hidden = false;
@@ -798,6 +923,19 @@
             var value = (el.dateInput.value || '').trim();
             if (value) goToDate(value);
         });
+
+        // Тема: авто → светлая → тёмная
+        if (el.themeBtn) {
+            el.themeBtn.addEventListener('click', cycleTheme);
+        }
+        applyTheme(readThemeMode(), { silent: true, skipRotation: true });
+
+        // Если страница открыта долго, «авто» само переключится в 20:00 и в 7:00.
+        window.setInterval(function () {
+            if (state.themeMode === 'auto') {
+                applyTheme('auto', { silent: true });
+            }
+        }, 5 * 60 * 1000);
 
         el.groupInput.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {

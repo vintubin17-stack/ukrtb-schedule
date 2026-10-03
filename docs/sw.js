@@ -10,7 +10,7 @@
    лежит в /static/ и получил бы неверную область действия).
    ------------------------------------------------------------------ */
 
-var VERSION = 'ukrtb-v5';
+var VERSION = 'ukrtb-v6';
 var SHELL_CACHE = VERSION + '-shell';
 var RUNTIME_CACHE = VERSION + '-runtime';
 
@@ -20,6 +20,7 @@ var SHELL_FILES = [
     'index.html',
     'app.js',
     'styles.css',
+    'theme.css',
     'manifest.webmanifest',
     'icons/favicon.svg',
     'icons/icon-192.png',

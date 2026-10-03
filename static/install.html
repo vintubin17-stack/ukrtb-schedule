@@ -3,12 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="color-scheme" content="light">
+    <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#0284c7">
     <title>Как установить расписание на телефон</title>
     <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Тема та же, что на странице расписания: выбор хранится в браузере.
+        (function () {
+            if (window.tailwind) {
+                var shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+                var hues = ['slate', 'sky', 'rose', 'amber', 'emerald', 'violet', 'indigo', 'blue'];
+                var colors = { card: 'rgb(var(--c-card) / <alpha-value>)' };
+                hues.forEach(function (hue) {
+                    colors[hue] = {};
+                    shades.forEach(function (shade) {
+                        colors[hue][shade] = 'rgb(var(--c-' + hue + '-' + shade + ') / <alpha-value>)';
+                    });
+                });
+                window.tailwind.config = { darkMode: 'class', theme: { extend: { colors: colors } } };
+            }
+        })();
+
+        (function () {
+            try {
+                var mode = window.localStorage.getItem('ukrtb-theme') || 'auto';
+                var hour = new Date().getHours();
+                var dark = mode === 'dark' || (mode === 'auto' && (hour >= 20 || hour < 7));
+                if (dark) document.documentElement.classList.add('dark');
+            } catch (e) { /* приватный режим */ }
+        })();
+    </script>
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="min-h-full bg-slate-100 font-sans text-slate-900 antialiased">
 
@@ -36,7 +64,7 @@
     <div class="mt-8 space-y-5">
 
         <!-- iPhone -->
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="rounded-2xl border border-slate-200 bg-card p-5 shadow-sm">
             <h2 class="flex items-center gap-2 text-lg font-semibold">
                 <span aria-hidden="true">🍎</span> iPhone и iPad
             </h2>
@@ -67,7 +95,7 @@
         </section>
 
         <!-- Android -->
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="rounded-2xl border border-slate-200 bg-card p-5 shadow-sm">
             <h2 class="flex items-center gap-2 text-lg font-semibold">
                 <span aria-hidden="true">🤖</span> Android
             </h2>
@@ -88,7 +116,7 @@
         </section>
 
         <!-- Компьютер -->
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="rounded-2xl border border-slate-200 bg-card p-5 shadow-sm">
             <h2 class="flex items-center gap-2 text-lg font-semibold">
                 <span aria-hidden="true">💻</span> Компьютер
             </h2>

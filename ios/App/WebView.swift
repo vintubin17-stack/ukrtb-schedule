@@ -17,11 +17,16 @@ struct WebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.websiteDataStore = .default()
+        // Страница сообщает выбранную тему — по ней подстраиваем оформление
+        // окна, чтобы строка состояния читалась на тёмном фоне.
+        configuration.userContentController.add(context.coordinator, name: "theme")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .always
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
 
         let refreshControl = UIRefreshControl()
         refreshControl.tintColor = .secondaryLabel
@@ -35,6 +40,11 @@ struct WebView: UIViewRepresentable {
         return webView
     }
 
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.configuration.userContentController
+            .removeScriptMessageHandler(forName: "theme")
+    }
+
     func updateUIView(_ webView: WKWebView, context: Context) {
         // Повторная загрузка по кнопке «Повторить».
         guard context.coordinator.lastReloadToken != reloadToken else { return }
@@ -42,7 +52,7 @@ struct WebView: UIViewRepresentable {
         webView.load(URLRequest(url: url))
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         private let parent: WebView
         weak var webView: WKWebView?
         var lastReloadToken: Int
@@ -54,6 +64,18 @@ struct WebView: UIViewRepresentable {
 
         @objc func handleRefresh(_ sender: UIRefreshControl) {
             webView?.reload()
+        }
+
+        /// Страница сообщает, какая тема выбрана: светлая или тёмная.
+        /// Переключаем оформление окна за ней, иначе на тёмной теме
+        /// строка состояния останется с тёмным текстом.
+        func userContentController(_ userContentController: WKUserContentController,
+                                   didReceive message: WKScriptMessage) {
+            guard message.name == "theme", let value = message.body as? String else { return }
+            let style: UIUserInterfaceStyle = (value == "dark") ? .dark : .light
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.window?.overrideUserInterfaceStyle = style
+            }
         }
 
         /// Внутренние переходы — в приложении, внешние ссылки — в Safari.
