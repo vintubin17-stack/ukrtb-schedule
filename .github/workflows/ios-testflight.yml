@@ -1,0 +1,109 @@
+name: iOS → TestFlight
+
+# Собирает приложение и отправляет его в TestFlight на бесплатном
+# macOS-раннере GitHub. Mac для этого не нужен — нужен только аккаунт
+# Apple Developer Program ($99/год), без него TestFlight недоступен.
+#
+# Подготовка (один раз), подробности в ios/README.md:
+#   1. Apple Developer Program + приложение в App Store Connect
+#      с Bundle ID ru.ukrtb.schedule.
+#   2. Ключ App Store Connect API (роль App Manager).
+#   3. Секреты репозитория: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, APPLE_TEAM_ID.
+#
+# Запуск: Actions → «iOS → TestFlight» → Run workflow
+#         либо тег вида ios-v1.0.1.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'ios-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    name: Сборка и отправка в TestFlight
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    env:
+      ASC_KEY_PATH: ${{ github.workspace }}/build/keys
+      ARCHIVE_PATH: ${{ github.workspace }}/build/Schedule.xcarchive
+      EXPORT_PATH: ${{ github.workspace }}/build/export
+
+    steps:
+      - name: Забрать код
+        uses: actions/checkout@v4
+
+      - name: Показать версию Xcode
+        run: xcodebuild -version
+
+      - name: Установить XcodeGen
+        run: brew install xcodegen
+
+      - name: Сгенерировать Xcode-проект
+        run: cd ios && xcodegen generate
+
+      - name: Подготовить ключ App Store Connect
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ASC_KEY_P8:-}" ] || [ -z "${ASC_KEY_ID:-}" ]; then
+            echo "::error::Не заданы секреты ASC_KEY_P8 и ASC_KEY_ID. Смотри ios/README.md."
+            exit 1
+          fi
+          mkdir -p "$ASC_KEY_PATH"
+          printf '%s' "$ASC_KEY_P8" > "$ASC_KEY_PATH/AuthKey_${ASC_KEY_ID}.p8"
+          chmod 600 "$ASC_KEY_PATH/AuthKey_${ASC_KEY_ID}.p8"
+          echo "Ключ записан: AuthKey_${ASC_KEY_ID}.p8"
+
+      - name: Собрать архив
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/Schedule.xcodeproj \
+            -scheme Schedule \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            archive
+
+      - name: Отправить в TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -exportPath "$EXPORT_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "Готово. Сборка появится в App Store Connect → TestFlight в течение получаса."
+
+      - name: Сохранить журнал сборки при ошибке
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build/**/*.log
+            ~/Library/Logs/gym
+          if-no-files-found: ignore
+          retention-days: 7

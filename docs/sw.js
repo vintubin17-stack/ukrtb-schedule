@@ -10,7 +10,7 @@
    лежит в /static/ и получил бы неверную область действия).
    ------------------------------------------------------------------ */
 
-var VERSION = 'ukrtb-v4';
+var VERSION = 'ukrtb-v5';
 var SHELL_CACHE = VERSION + '-shell';
 var RUNTIME_CACHE = VERSION + '-runtime';
 
@@ -25,6 +25,7 @@ var SHELL_FILES = [
     'icons/icon-192.png',
     'icons/icon-512.png',
     'icons/apple-touch-icon.png',
+    'install.html',
     'data.json'
 ];
 
@@ -121,13 +122,20 @@ self.addEventListener('fetch', function (event) {
         return;
     }
 
-    // Открытие самой страницы (в том числе из ярлыка): сначала кэш.
+    // Открытие страницы (в том числе из ярлыка): сначала кэш именно этой
+    // страницы, потом сеть, и только в крайнем случае — главная.
+    // Раньше здесь всегда отдавался index.html, из-за чего переход на
+    // любую другую страницу (например, install.html) показывал главную.
     if (request.mode === 'navigate') {
         event.respondWith(
-            caches.match('index.html').then(function (cached) {
+            caches.match(request, { ignoreSearch: true }).then(function (cached) {
                 if (cached) return cached;
-                return fetch(request).catch(function () {
-                    return caches.match('./');
+                return fetch(request).then(function (response) {
+                    var copy = response.clone();
+                    caches.open(SHELL_CACHE).then(function (cache) { cache.put(request, copy); });
+                    return response;
+                }).catch(function () {
+                    return caches.match('index.html');
                 });
             })
         );

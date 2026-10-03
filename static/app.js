@@ -736,6 +736,15 @@
                 'Данные обновляются раз в несколько часов и только когда компьютер включён — ' +
                 'ориентируйтесь на отметку «Обновлено» выше.';
             footer.appendChild(note);
+
+            // Как поставить расписание на домашний экран телефона.
+            var install = document.createElement('p');
+            install.className = 'mt-1.5';
+            install.innerHTML =
+                '<a class="font-medium text-sky-700 underline decoration-sky-300 ' +
+                'underline-offset-2 hover:text-sky-900" href="install.html">' +
+                'Как установить приложение на телефон</a>';
+            footer.appendChild(install);
         }
     }
 

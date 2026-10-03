@@ -25,6 +25,8 @@ from PIL import Image, ImageDraw
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 OUT_DIR = PROJECT_ROOT / "static" / "icons"
+IOS_ICON = (PROJECT_ROOT / "ios" / "App" / "Assets.xcassets"
+            / "AppIcon.appiconset" / "icon-1024.png")
 
 BRAND = (2, 132, 199)          # небесно-синий, как кнопки интерфейса
 BRAND_DARK = (3, 105, 161)
@@ -150,9 +152,17 @@ def main() -> int:
 
     (OUT_DIR / "favicon.svg").write_text(FAVICON_SVG, encoding="utf-8", newline="\n")
 
+    # Иконка для App Store: 1024x1024 и обязательно без прозрачности —
+    # прозрачный значок App Store не принимает.
+    IOS_ICON.parent.mkdir(parents=True, exist_ok=True)
+    draw_icon(1024, padding_ratio=0.0).convert("RGB").save(
+        IOS_ICON, "PNG", optimize=True)
+
     for path in sorted(OUT_DIR.iterdir()):
         print(f"  {path.name:26} {path.stat().st_size:>8} байт")
+    print(f"  {'icon-1024.png (iOS)':26} {IOS_ICON.stat().st_size:>8} байт")
     print(f"\n  Каталог: {OUT_DIR}")
+    print(f"  iOS:     {IOS_ICON}")
     return 0
 
 

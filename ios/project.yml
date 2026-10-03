@@ -1,0 +1,53 @@
+# Описание проекта для XcodeGen (https://github.com/yonaskolb/XcodeGen).
+#
+# XcodeGen превращает этот файл в настоящий Schedule.xcodeproj, поэтому
+# сам проект в репозитории не хранится — его собирает CI или разработчик.
+#
+# На Mac:      brew install xcodegen && cd ios && xcodegen generate
+# В GitHub CI: делает тот же шаг на macOS-раннере (см. .github/workflows/ios-testflight.yml)
+
+name: Schedule
+
+options:
+  bundleIdPrefix: ru.ukrtb
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: "$(APPLE_TEAM_ID)"
+
+targets:
+  Schedule:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: App
+    settings:
+      base:
+        PRODUCT_NAME: Schedule
+        PRODUCT_BUNDLE_IDENTIFIER: ru.ukrtb.schedule
+        INFOPLIST_FILE: App/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+
+# Общая схема сборки: без неё xcodebuild в CI не найдёт, что собирать.
+schemes:
+  Schedule:
+    build:
+      targets:
+        Schedule: all
+    run:
+      config: Debug
+    archive:
+      config: Release
