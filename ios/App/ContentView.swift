@@ -21,8 +21,8 @@ struct ContentView: View {
                     errorMessage: $errorMessage)
                 .ignoresSafeArea(edges: .bottom)
                 .onAppear {
-                    // Расставляем напоминания о парах при каждом открытии.
-                    LessonNotifications.shared.refresh()
+                    // Напоминания о парах и живая активность с текущей парой.
+                    ScheduleService.shared.refresh()
                 }
 
             if isLoading && errorMessage == nil {

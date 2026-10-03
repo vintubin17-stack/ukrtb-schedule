@@ -1,35 +1,43 @@
 # Описание проекта для XcodeGen (https://github.com/yonaskolb/XcodeGen).
 #
-# XcodeGen превращает этот файл в настоящий Schedule.xcodeproj, поэтому
-# сам проект в репозитории не хранится — его собирает CI или разработчик.
+# Здесь два таргета: само приложение и расширение виджета, в котором живёт
+# живая активность (Live Activity). ActivityKit требует, чтобы активность
+# описывалась именно в расширении виджета, а тип с данными был доступен и
+# приложению, и расширению — поэтому каталог Shared попал в оба таргета.
 #
 # На Mac:      brew install xcodegen && cd ios && xcodegen generate
-# В GitHub CI: делает тот же шаг на macOS-раннере (см. .github/workflows/ios-testflight.yml)
+# В GitHub CI: тот же шаг на macOS-раннере (см. .github/workflows/).
 
 name: Schedule
 
 options:
   bundleIdPrefix: ru.ukrtb
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.0"
   createIntermediateGroups: true
   groupSortPosition: top
 
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: "2"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: "$(APPLE_TEAM_ID)"
 
 targets:
+
+  # --- Приложение ---------------------------------------------------------
   Schedule:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
     sources:
       - path: App
+      - path: Shared
+    dependencies:
+      - target: ScheduleWidget
+        embed: true
     settings:
       base:
         PRODUCT_NAME: Schedule
@@ -40,6 +48,24 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_USER_SCRIPT_SANDBOXING: YES
         SWIFT_EMIT_LOC_STRINGS: YES
+
+  # --- Расширение виджета: живая активность -------------------------------
+  ScheduleWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Widget
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_NAME: ScheduleWidget
+        PRODUCT_BUNDLE_IDENTIFIER: ru.ukrtb.schedule.widget
+        INFOPLIST_FILE: Widget/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
 
 # Общая схема сборки: без неё xcodebuild в CI не найдёт, что собирать.
 schemes:

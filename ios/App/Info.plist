@@ -40,6 +40,11 @@
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<!-- Живая активность: текущая пара на экране блокировки и в Dynamic Island. -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<false/>
 	<!-- Приложение не использует шифрование, поэтому вопрос об экспортной
 	     лицензии при каждой загрузке в TestFlight не задаётся. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
