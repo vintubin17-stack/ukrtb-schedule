@@ -1,0 +1,7 @@
+# Зависимости для публикации приложения в интернете.
+# Установка:  pip install -r requirements-prod.txt
+
+-r requirements.txt
+
+# WSGI-сервер: работает и на Windows, и на Linux.
+waitress>=3.0,<4.0

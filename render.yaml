@@ -1,0 +1,40 @@
+# Blueprint для Render (https://render.com).
+#
+# Как использовать:
+#   1. Загрузите проект в репозиторий на GitHub.
+#   2. В Render: New → Blueprint → выберите репозиторий.
+#   3. Render прочитает этот файл и создаст сервис.
+#
+# После деплоя адрес будет вида https://ukrtb-schedule.onrender.com
+# Свой домен добавляется в панели: Settings → Custom Domain.
+
+services:
+  - type: web
+    name: ukrtb-schedule
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free            # free «засыпает» после 15 минут простоя
+    region: frankfurt     # ближе к Уфе, чем oregon
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Render сам подставляет порт; контейнер читает его из PORT.
+      - key: UKRTB_GROUP
+        value: КСК-40-23
+      # Публичный деплой: кэш длиннее, кнопка «Обновить» реже.
+      - key: UKRTB_CACHE_TTL
+        value: "900"
+      - key: UKRTB_RANGE_CACHE_TTL
+        value: "21600"
+      - key: UKRTB_REFRESH_COOLDOWN
+        value: "60"
+      # Портал колледжа из зарубежных дата-центров отвечает не всегда,
+      # поэтому не ждём долго: быстрый отказ лучше висящей страницы.
+      - key: UKRTB_TIMEOUT
+        value: "8"
+      - key: UKRTB_ATTEMPTS
+        value: "1"
+      - key: UKRTB_SOURCE_BREAK
+        value: "90"
+      - key: UKRTB_CACHE_DIR
+        value: /app/data/cache

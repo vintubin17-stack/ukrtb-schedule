@@ -1,0 +1,429 @@
+/* ------------------------------------------------------------------
+   Расписание УКРТБ — дополнение к Tailwind (CDN).
+   Содержит то, что неудобно выражать утилитами: анимации, скелетоны,
+   печать и резервное оформление на случай недоступности CDN.
+   ------------------------------------------------------------------ */
+
+:root {
+    --brand: #0284c7;
+    --line: #e2e8f0;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+}
+
+/* Атрибут hidden обязан побеждать утилиты Tailwind: без !important правило
+   .grid { display: grid } перебивает [hidden] { display: none } из стилей
+   браузера, и «скрытый» блок остаётся видимым. */
+[hidden] {
+    display: none !important;
+}
+
+/* --- Скелетоны загрузки ------------------------------------------- */
+
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: #e9eef5;
+    border-radius: 0.5rem;
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, .7) 50%, rgba(255, 255, 255, 0) 100%);
+    animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* --- Анимации ------------------------------------------------------ */
+
+.day-card {
+    animation: fadeUp .35s ease-out both;
+}
+
+.day-card:nth-child(2) {
+    animation-delay: .06s;
+}
+
+.day-card:nth-child(3) {
+    animation-delay: .12s;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .day-card,
+    .skeleton::after,
+    .spin {
+        animation: none;
+    }
+}
+
+/* --- Печать -------------------------------------------------------- */
+
+@media print {
+    body {
+        background: #fff;
+    }
+
+    #refresh-btn,
+    #group-input,
+    #error-retry,
+    footer a {
+        display: none !important;
+    }
+
+    #days {
+        display: block !important;
+    }
+
+    .day-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 12px;
+        box-shadow: none !important;
+    }
+}
+
+/* ==================================================================
+   Резервное оформление: включается классом .no-tailwind на <body>,
+   если Tailwind с CDN не загрузился. Интерфейс остаётся читаемым.
+   ================================================================== */
+
+body.no-tailwind {
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: #0f172a;
+    background: #f1f5f9;
+    line-height: 1.5;
+}
+
+body.no-tailwind > div {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+}
+
+body.no-tailwind header {
+    display: block;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 1rem;
+}
+
+body.no-tailwind h1 {
+    font-size: 1.6rem;
+    margin: .25rem 0 .5rem;
+}
+
+body.no-tailwind header p {
+    margin: 0 0 .75rem;
+    font-size: .875rem;
+    color: #475569;
+}
+
+body.no-tailwind #group-input {
+    padding: .6rem .75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .6rem;
+    font-size: .875rem;
+    width: 100%;
+    max-width: 16rem;
+    margin-right: .5rem;
+    background: #fff;
+}
+
+body.no-tailwind #refresh-btn {
+    padding: .65rem 1rem;
+    border: 0;
+    border-radius: .6rem;
+    background: var(--brand);
+    color: #fff;
+    font-size: .875rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: .5rem;
+}
+
+body.no-tailwind #days {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+    body.no-tailwind #days {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+body.no-tailwind .day-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: .9rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+    overflow: hidden;
+}
+
+body.no-tailwind .day-card > header {
+    border-bottom: 1px solid var(--line);
+    padding: .9rem 1.1rem;
+}
+
+body.no-tailwind .day-card h2 {
+    font-size: 1.05rem;
+    margin: .15rem 0 0;
+}
+
+body.no-tailwind .day-card header p {
+    margin: 0;
+    font-size: .75rem;
+    color: #64748b;
+}
+
+body.no-tailwind .lesson {
+    display: flex;
+    gap: 1rem;
+    padding: .9rem 1.1rem;
+    border-bottom: 1px solid var(--line);
+}
+
+body.no-tailwind .lesson:last-child {
+    border-bottom: 0;
+}
+
+body.no-tailwind .lesson-title {
+    font-weight: 600;
+    font-size: .95rem;
+    margin: 0;
+}
+
+body.no-tailwind .lesson-meta {
+    margin: .35rem 0 0;
+    font-size: .82rem;
+    color: #475569;
+}
+
+body.no-tailwind .pair-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #075985;
+    font-weight: 700;
+    font-size: .95rem;
+}
+
+body.no-tailwind .lesson-time {
+    font-size: .72rem;
+    color: #64748b;
+    text-align: center;
+    margin-top: .35rem;
+    white-space: nowrap;
+}
+
+body.no-tailwind .lesson-left {
+    width: 4rem;
+    flex: 0 0 auto;
+}
+
+body.no-tailwind .badge {
+    display: inline-block;
+    padding: .18rem .55rem;
+    border-radius: 999px;
+    font-size: .7rem;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid var(--line);
+    margin-right: .35rem;
+}
+
+body.no-tailwind .badge-live {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+body.no-tailwind .badge-cache {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+}
+
+body.no-tailwind .badge-sample {
+    background: #ede9fe;
+    color: #5b21b6;
+    border-color: #ddd6fe;
+}
+
+body.no-tailwind .badge-today {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+}
+
+body.no-tailwind .chip {
+    display: inline-block;
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    font-size: .7rem;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid var(--line);
+    margin-right: .25rem;
+}
+
+body.no-tailwind .chip-remote {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+body.no-tailwind .empty-day {
+    padding: 2rem 1.1rem;
+    text-align: center;
+    color: #64748b;
+    font-size: .875rem;
+}
+
+body.no-tailwind .lesson-link {
+    display: inline-block;
+    margin-top: .5rem;
+    font-size: .78rem;
+    font-weight: 600;
+    color: #1d4ed8;
+}
+
+body.no-tailwind #notice,
+body.no-tailwind #error-box {
+    margin-top: 1rem;
+    padding: .85rem 1rem;
+    border-radius: .7rem;
+    border: 1px solid #fcd34d;
+    background: #fffbeb;
+    font-size: .85rem;
+}
+
+body.no-tailwind #error-box {
+    border-color: #fda4af;
+    background: #fff1f2;
+    color: #881337;
+}
+
+body.no-tailwind footer {
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--line);
+    padding-top: 1rem;
+    font-size: .75rem;
+    color: #64748b;
+}
+
+body.no-tailwind .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+body.no-tailwind section[aria-label="Выбор даты"] {
+    margin-top: 1rem;
+    padding: .75rem;
+    border: 1px solid var(--line);
+    border-radius: .9rem;
+    background: #fff;
+}
+
+body.no-tailwind section[aria-label="Выбор даты"] > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+}
+
+body.no-tailwind .nav-btn,
+body.no-tailwind .quick-chip,
+body.no-tailwind .days-btn {
+    padding: .45rem .8rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .6rem;
+    background: #fff;
+    color: #334155;
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+body.no-tailwind .nav-btn {
+    padding: .45rem .7rem;
+}
+
+body.no-tailwind .quick-chip {
+    border-radius: 999px;
+    background: #f8fafc;
+}
+
+body.no-tailwind .days-btn {
+    border-radius: .5rem;
+}
+
+body.no-tailwind .quick-chip[class*="bg-sky-600"],
+body.no-tailwind .days-btn[class*="bg-white"] {
+    border-color: var(--brand);
+    background: var(--brand);
+    color: #fff;
+}
+
+body.no-tailwind .date-input {
+    padding: .5rem .7rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .6rem;
+    font-size: .85rem;
+    background: #fff;
+}
+
+body.no-tailwind #range-hint {
+    margin: .6rem 0 0;
+    font-size: .75rem;
+    color: #64748b;
+}
+
+body.no-tailwind #days {
+    margin-top: 1.25rem;
+}

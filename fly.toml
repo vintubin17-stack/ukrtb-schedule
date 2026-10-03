@@ -1,0 +1,53 @@
+# Конфигурация для Fly.io (https://fly.io).
+#
+# Как использовать:
+#   fly launch --no-deploy --copy-config     # подхватит Dockerfile и этот файл
+#   fly deploy
+#   fly open
+#
+# ВАЖНО: у бесплатного тарифа Fly нужна привязка карты, но машину можно
+# держать выключенной (auto_stop_machines) — тогда счёт близок к нулю.
+
+app = "ukrtb-schedule"
+primary_region = "fra"          # Франкфурт: ближе к Уфе, чем США
+kill_signal = "SIGTERM"
+kill_timeout = 10
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"                 # должен совпадать с internal_port
+  UKRTB_GROUP = "КСК-40-23"
+  UKRTB_CACHE_DIR = "/app/data/cache"
+  UKRTB_CACHE_TTL = "900"
+  UKRTB_REFRESH_COOLDOWN = "60"
+  UKRTB_TIMEOUT = "20"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "suspend"   # экономия: машина засыпает без трафика
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 40
+    hard_limit = 80
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+# Кэш расписания: чтобы данные переживали перезапуск машины.
+[mounts]
+  source = "ukrtb_cache"
+  destination = "/app/data/cache"

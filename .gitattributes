@@ -1,0 +1,10 @@
+# Единые переводы строк: в репозитории и в рабочем каталоге LF.
+# Проект рассчитан на запуск в Linux-контейнере, поэтому CRLF не нужны.
+* text=auto eol=lf
+
+# Бинарные файлы не трогаем.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

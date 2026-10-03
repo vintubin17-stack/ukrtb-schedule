@@ -1,0 +1,8 @@
+# Зависимости проекта «Расписание УКРТБ».
+# Установка:  pip install -r requirements.txt
+#
+# BeautifulSoup/Playwright не нужны: портал study.ukrtb.ru отдаёт расписание
+# через публичный JSON API, поэтому HTML парсить не приходится.
+
+Flask>=3.0,<4.0
+requests>=2.31,<3.0
