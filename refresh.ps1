@@ -100,12 +100,30 @@ $newSig = if (Test-Path -LiteralPath $sigFile) {
 } else { "" }
 $oldSig = (((& $git show "HEAD:docs/data.sig" 2>$null) -join "`n")).Trim()
 
+# Проверяем, есть ли неотправленные коммиты от предыдущих попыток
+$unpushed = @(& $git log 'origin/main..HEAD' --oneline 2>$null)
+
 if ($newSig -and $newSig -eq $oldSig) {
     # Расписание не изменилось: возвращаем файлы данных к версии из git,
     # чтобы в дереве не осталось изменений только из-за отметки времени.
     $dataFiles = @("docs/data.sig", "docs/data.json") |
         Where-Object { Test-Path -LiteralPath (Join-Path $PSScriptRoot $_) }
     & $git checkout -- $dataFiles 2>$null
+
+    if ($unpushed -and $unpushed.Count -gt 0) {
+        if (-not $Quiet) { Write-Host "Расписание не изменилось, но есть неотправленные коммиты ($($unpushed.Count)). Отправляю на GitHub..." }
+        & $git push -q origin main
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Не удалось отправить коммиты на GitHub." -ForegroundColor Red
+            exit 1
+        }
+        if (-not $Quiet) {
+            Write-Host "Опубликовано: https://vintubin17-stack.github.io/ukrtb-schedule/" -ForegroundColor Green
+            Write-Host "GitHub Pages обновит страницу в течение минуты."
+        }
+        exit 0
+    }
+
     if (-not $Quiet) { Write-Host "Расписание не изменилось — публикация не нужна." }
     exit 0
 }
@@ -113,13 +131,18 @@ if ($newSig -and $newSig -eq $oldSig) {
 & $git add docs
 & $git diff --cached --quiet
 if ($LASTEXITCODE -eq 0) {
-    if (-not $Quiet) { Write-Host "Изменений в расписании нет — публиковать нечего." }
-    exit 0
-}
-
-& $git add docs
-& $git diff --cached --quiet
-if ($LASTEXITCODE -eq 0) {
+    if ($unpushed -and $unpushed.Count -gt 0) {
+        if (-not $Quiet) { Write-Host "Изменений в расписании нет, но есть неотправленные коммиты ($($unpushed.Count)). Отправляю..." }
+        & $git push -q origin main
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Не удалось отправить коммиты на GitHub." -ForegroundColor Red
+            exit 1
+        }
+        if (-not $Quiet) {
+            Write-Host "Опубликовано: https://vintubin17-stack.github.io/ukrtb-schedule/" -ForegroundColor Green
+        }
+        exit 0
+    }
     if (-not $Quiet) { Write-Host "Изменений в расписании нет — публиковать нечего." }
     exit 0
 }
@@ -132,7 +155,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-& $git push -q
+& $git push -q origin main
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Не удалось отправить на GitHub." -ForegroundColor Red
     exit 1

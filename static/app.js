@@ -930,6 +930,12 @@
         if (IS_STATIC) {
             setupStaticMode();
             registerServiceWorker();
+        } else if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                registrations.forEach(function (r) {
+                    r.unregister();
+                });
+            }).catch(function () {});
         }
 
         el.refreshBtn.addEventListener('click', function () {
