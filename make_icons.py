@@ -154,15 +154,60 @@ def main() -> int:
 
     # Иконка для App Store: 1024x1024 и обязательно без прозрачности —
     # прозрачный значок App Store не принимает.
-    IOS_ICON.parent.mkdir(parents=True, exist_ok=True)
-    draw_icon(1024, padding_ratio=0.0).convert("RGB").save(
-        IOS_ICON, "PNG", optimize=True)
+    IOS_APPICONSET = PROJECT_ROOT / "ios" / "App" / "Assets.xcassets" / "AppIcon.appiconset"
+    IOS_APPICONSET.mkdir(parents=True, exist_ok=True)
+
+    ios_specs = [
+        {"idiom": "iphone", "size": "20x20", "scale": "2x", "filename": "icon-20@2x.png", "px": 40},
+        {"idiom": "iphone", "size": "20x20", "scale": "3x", "filename": "icon-20@3x.png", "px": 60},
+        {"idiom": "iphone", "size": "29x29", "scale": "2x", "filename": "icon-29@2x.png", "px": 58},
+        {"idiom": "iphone", "size": "29x29", "scale": "3x", "filename": "icon-29@3x.png", "px": 87},
+        {"idiom": "iphone", "size": "40x40", "scale": "2x", "filename": "icon-40@2x.png", "px": 80},
+        {"idiom": "iphone", "size": "40x40", "scale": "3x", "filename": "icon-40@3x.png", "px": 120},
+        {"idiom": "iphone", "size": "60x60", "scale": "2x", "filename": "icon-60@2x.png", "px": 120},
+        {"idiom": "iphone", "size": "60x60", "scale": "3x", "filename": "icon-60@3x.png", "px": 180},
+        {"idiom": "ipad", "size": "20x20", "scale": "1x", "filename": "icon-20@1x.png", "px": 20},
+        {"idiom": "ipad", "size": "20x20", "scale": "2x", "filename": "icon-20@2x-ipad.png", "px": 40},
+        {"idiom": "ipad", "size": "29x29", "scale": "1x", "filename": "icon-29@1x.png", "px": 29},
+        {"idiom": "ipad", "size": "29x29", "scale": "2x", "filename": "icon-29@2x-ipad.png", "px": 58},
+        {"idiom": "ipad", "size": "40x40", "scale": "1x", "filename": "icon-40@1x.png", "px": 40},
+        {"idiom": "ipad", "size": "40x40", "scale": "2x", "filename": "icon-40@2x-ipad.png", "px": 80},
+        {"idiom": "ipad", "size": "76x76", "scale": "1x", "filename": "icon-76@1x.png", "px": 76},
+        {"idiom": "ipad", "size": "76x76", "scale": "2x", "filename": "icon-76@2x.png", "px": 152},
+        {"idiom": "ipad", "size": "83.5x83.5", "scale": "2x", "filename": "icon-83.5@2x.png", "px": 167},
+        {"idiom": "ios-marketing", "size": "1024x1024", "scale": "1x", "filename": "icon-1024.png", "px": 1024},
+        {"idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon-1024.png", "px": 1024},
+    ]
+
+    import json
+    generated_files = set()
+    for spec in ios_specs:
+        fname = spec["filename"]
+        if fname not in generated_files:
+            draw_icon(spec["px"], padding_ratio=0.0).convert("RGB").save(
+                IOS_APPICONSET / fname, "PNG", optimize=True
+            )
+            generated_files.add(fname)
+
+    contents_json = {
+        "images": [
+            {k: v for k, v in spec.items() if k != "px"}
+            for spec in ios_specs
+        ],
+        "info": {
+            "author": "xcode",
+            "version": 1
+        }
+    }
+    (IOS_APPICONSET / "Contents.json").write_text(
+        json.dumps(contents_json, indent=2) + "\n", encoding="utf-8"
+    )
 
     for path in sorted(OUT_DIR.iterdir()):
         print(f"  {path.name:26} {path.stat().st_size:>8} байт")
-    print(f"  {'icon-1024.png (iOS)':26} {IOS_ICON.stat().st_size:>8} байт")
+    print(f"  {'iOS AppIcon.appiconset':26} {len(generated_files)} иконок создано")
     print(f"\n  Каталог: {OUT_DIR}")
-    print(f"  iOS:     {IOS_ICON}")
+    print(f"  iOS:     {IOS_APPICONSET}")
     return 0
 
 

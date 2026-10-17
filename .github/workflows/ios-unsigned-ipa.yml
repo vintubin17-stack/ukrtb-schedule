@@ -67,29 +67,19 @@ jobs:
             find "$ARCHIVE_PATH/Products" -maxdepth 3 || true
             exit 1
           fi
-
-          # 1. Schedule.ipa (универсальная версия: iOS 15.0+, без PlugIns)
-          # Удаление PlugIns необходимо для:
-          # - Установки на iOS 15 (iPhone 6s/7/SE1 на iOS 15.8.5) без ошибки DeviceOSVersionTooLow
-          # - Экономии лимита App ID (1 слот вместо 2) при бесплатной подписи через iLoader/SideStore/AltStore
-          mkdir -p "$IPA_DIR/universal/Payload"
-          cp -R "$APP_PATH" "$IPA_DIR/universal/Payload/"
-          rm -rf "$IPA_DIR/universal/Payload/Schedule.app/PlugIns"
-          (cd "$IPA_DIR/universal" && zip -qr "$IPA_DIR/Schedule.ipa" Payload)
-
-          # 2. Schedule-with-widgets.ipa (с расширением Live Activity для iOS 16.2+)
-          mkdir -p "$IPA_DIR/widgets/Payload"
-          cp -R "$APP_PATH" "$IPA_DIR/widgets/Payload/"
-          (cd "$IPA_DIR/widgets" && zip -qr "$IPA_DIR/Schedule-with-widgets.ipa" Payload)
-
-          ls -lh "$IPA_DIR"/*.ipa
-          echo "Размер Schedule.ipa: $(du -h "$IPA_DIR/Schedule.ipa" | cut -f1)"
+          mkdir -p "$IPA_DIR/Payload"
+          cp -R "$APP_PATH" "$IPA_DIR/Payload/"
+          cd "$IPA_DIR"
+          zip -qr Schedule.ipa Payload
+          ls -lh Schedule.ipa
+          echo "Размер: $(du -h Schedule.ipa | cut -f1)"
 
       - name: Проверить, что внутри правильное приложение
         run: |
           set -euo pipefail
-          unzip -l "$IPA_DIR/Schedule.ipa" | head -20
-          PLIST="$IPA_DIR/universal/Payload/Schedule.app/Info.plist"
+          cd "$IPA_DIR"
+          unzip -l Schedule.ipa | head -20
+          PLIST="$IPA_DIR/Payload/Schedule.app/Info.plist"
           echo "Bundle ID: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")"
           echo "Версия:    $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")"
           echo "Сборка:    $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")"
@@ -98,7 +88,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Schedule-ipa
-          path: ${{ env.IPA_DIR }}/*.ipa
+          path: ${{ env.IPA_DIR }}/Schedule.ipa
           retention-days: 90
 
       - name: Обновить релиз ios-latest
@@ -109,13 +99,8 @@ jobs:
           body: |
             Неподписанное приложение «Расписание КСК-40» для установки через iLoader, SideStore, AltStore или LiveContainer.
 
-            * `Schedule.ipa` — совместимо с **iOS 15.0+** (включая iOS 15.8.5), тратит только 1 слот App ID.
-            * `Schedule-with-widgets.ipa` — включает расширение Live Activity (требует **iOS 16.2+**).
-
             Как установить — в файле `ios/README.md`, раздел «Бесплатная установка».
             Собрано из коммита ${{ github.sha }}.
-          files: |
-            ${{ env.IPA_DIR }}/Schedule.ipa
-            ${{ env.IPA_DIR }}/Schedule-with-widgets.ipa
+          files: ${{ env.IPA_DIR }}/Schedule.ipa
           prerelease: true
           make_latest: false
