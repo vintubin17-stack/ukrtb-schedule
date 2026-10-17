@@ -7,7 +7,7 @@ import Foundation
 /// Запустить активность можно только пока приложение на экране — это
 /// ограничение iOS. Дальше она живёт сама: ползунок и обратный отсчёт
 /// обновляет система, приложение для этого не нужно.
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 final class LiveActivityController {
 
     static let shared = LiveActivityController()

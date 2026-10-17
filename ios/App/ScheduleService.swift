@@ -61,7 +61,7 @@ final class ScheduleService {
 
     private func updateLiveActivity(_ file: ScheduleFile) {
         #if canImport(ActivityKit)
-        guard #available(iOS 16.1, *) else { return }
+        guard #available(iOS 16.2, *) else { return }
 
         let now = Date()
         var current: (lesson: Lesson, start: Date, end: Date)?

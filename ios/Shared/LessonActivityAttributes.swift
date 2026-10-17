@@ -7,7 +7,7 @@ import Foundation
 ///
 /// Этот файл включён и в приложение, и в расширение виджета: так обе части
 /// используют один и тот же тип, как того требует ActivityKit.
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 struct LessonActivityAttributes: ActivityAttributes {
 
     struct ContentState: Codable, Hashable {
