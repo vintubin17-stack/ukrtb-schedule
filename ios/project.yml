@@ -13,7 +13,7 @@ name: Schedule
 options:
   bundleIdPrefix: ru.ukrtb
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "15.0"
   createIntermediateGroups: true
   groupSortPosition: top
 
@@ -31,7 +31,7 @@ targets:
   Schedule:
     type: application
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "15.0"
     sources:
       - path: App
       - path: Shared
@@ -53,7 +53,7 @@ targets:
   ScheduleWidget:
     type: app-extension
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "16.2"
     sources:
       - path: Widget
       - path: Shared

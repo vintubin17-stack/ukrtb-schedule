@@ -60,6 +60,9 @@ final class ScheduleService {
     // MARK: - Живая активность на экране блокировки
 
     private func updateLiveActivity(_ file: ScheduleFile) {
+        #if canImport(ActivityKit)
+        guard #available(iOS 16.1, *) else { return }
+
         let now = Date()
         var current: (lesson: Lesson, start: Date, end: Date)?
         var upcoming: (lesson: Lesson, start: Date)?
@@ -111,6 +114,7 @@ final class ScheduleService {
         }
 
         LiveActivityController.shared.stop()
+        #endif
     }
 
     // MARK: - Напоминания за 15 минут

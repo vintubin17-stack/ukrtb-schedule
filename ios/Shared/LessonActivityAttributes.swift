@@ -1,3 +1,4 @@
+#if canImport(ActivityKit)
 import ActivityKit
 import Foundation
 
@@ -6,6 +7,7 @@ import Foundation
 ///
 /// Этот файл включён и в приложение, и в расширение виджета: так обе части
 /// используют один и тот же тип, как того требует ActivityKit.
+@available(iOS 16.1, *)
 struct LessonActivityAttributes: ActivityAttributes {
 
     struct ContentState: Codable, Hashable {
@@ -29,3 +31,4 @@ struct LessonActivityAttributes: ActivityAttributes {
     /// Группа: не меняется, пока активность живёт.
     var group: String
 }
+#endif

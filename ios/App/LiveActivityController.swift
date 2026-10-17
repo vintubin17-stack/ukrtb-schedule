@@ -1,3 +1,4 @@
+#if canImport(ActivityKit)
 import ActivityKit
 import Foundation
 
@@ -6,6 +7,7 @@ import Foundation
 /// Запустить активность можно только пока приложение на экране — это
 /// ограничение iOS. Дальше она живёт сама: ползунок и обратный отсчёт
 /// обновляет система, приложение для этого не нужно.
+@available(iOS 16.1, *)
 final class LiveActivityController {
 
     static let shared = LiveActivityController()
@@ -48,3 +50,4 @@ final class LiveActivityController {
         Task { await current.end(nil, dismissalPolicy: .immediate) }
     }
 }
+#endif
